@@ -2,14 +2,15 @@ name: Build APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -19,29 +20,32 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool
+          sudo apt install -y git zip unzip openjdk-17-jdk autoconf libtool wget unzip
 
       - name: Install buildozer and cython
         run: |
           pip install buildozer cython
 
-      # 如果还需要其他依赖，可以安装
-   - name: Install Android SDK build-tools and accept licenses
-     run: |
-       export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-       mkdir -p $ANDROID_HOME
-       # 下载命令行工具（如果不存在）
-       if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-         wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
-         unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME
-         mv $ANDROID_HOME/cmdline-tools $ANDROID_HOME/cmdline-tools-latest
-         mkdir -p $ANDROID_HOME/cmdline-tools
-         mv $ANDROID_HOME/cmdline-tools-latest $ANDROID_HOME/cmdline-tools/latest
-       fi
-       # 接受所有许可证
-       yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-       # 安装 build-tools 33.0.0
-       $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0"
+      - name: Accept SDK license and install build-tools manually
+        run: |
+          SDK_DIR="$HOME/.buildozer/android/platform/android-sdk"
+          mkdir -p "$SDK_DIR"
+          cd "$SDK_DIR"
+          if [ ! -d "cmdline-tools" ]; then
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+            unzip -q cmdline-tools.zip -d cmdline-tools
+            mv cmdline-tools/cmdline-tools cmdline-tools/latest
+            rm cmdline-tools.zip
+          fi
+          export PATH="$SDK_DIR/cmdline-tools/latest/bin:$PATH"
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          sdkmanager "build-tools;33.0.0" > /dev/null 2>&1
+          if [ -f "$SDK_DIR/build-tools/33.0.0/aidl" ]; then
+            echo "✅ Aidl installed successfully."
+          else
+            echo "❌ Aidl not found. Build-tools installation failed."
+            exit 1
+          fi
 
       - name: Build APK
         run: |
