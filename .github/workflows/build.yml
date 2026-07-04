@@ -25,6 +25,24 @@ jobs:
         run: |
           pip install buildozer cython
 
+      # 如果还需要其他依赖，可以安装
+   - name: Install Android SDK build-tools and accept licenses
+     run: |
+       export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+       mkdir -p $ANDROID_HOME
+       # 下载命令行工具（如果不存在）
+       if [ ! -f "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+         wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+         unzip -q /tmp/cmdline-tools.zip -d $ANDROID_HOME
+         mv $ANDROID_HOME/cmdline-tools $ANDROID_HOME/cmdline-tools-latest
+         mkdir -p $ANDROID_HOME/cmdline-tools
+         mv $ANDROID_HOME/cmdline-tools-latest $ANDROID_HOME/cmdline-tools/latest
+       fi
+       # 接受所有许可证
+       yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+       # 安装 build-tools 33.0.0
+       $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.0"
+
       - name: Build APK
         run: |
           buildozer android debug
