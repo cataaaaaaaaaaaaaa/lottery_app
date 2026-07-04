@@ -121,7 +121,7 @@ fullscreen = 0
 android.accept_sdk_license = True
 
 # Specify build tools version (stable)
-android.sdk_build_tools = 34.0.0
+android.sdk_build_tools = 33.0.0
 
 # (str) Android NDK version to use
 #android.ndk = 23b
